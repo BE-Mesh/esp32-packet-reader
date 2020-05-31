@@ -5,18 +5,27 @@
 # TODO description
 
 pip3 install -r ./requirements.txt
-python3 main.py
+python3 test.py
 
 """
-import sys  # ctrl-c handling and clear handling
-import serial
-import os
-import logging
+__author__ = "Andrea Lacava"
+__credits__ = ["Andrea Lacava"]
+__license__ = "GPL"
+__version__ = "1.1"
+__email__ = "thecave003@gmail.com"
+__status__ = "Production"
+
 import argparse
+import logging
+
+import serial
+
+from reader.reader import Reader
 
 DEFAULT_PATH = '/dev/ttyUSB0'
 
-if __name__ == '__main__':
+
+def test():
     path = DEFAULT_PATH
     logging.basicConfig(filename='run.log', filemode='w', level=logging.DEBUG)
     logger = logging.getLogger('packet_extractor')
@@ -37,34 +46,19 @@ if __name__ == '__main__':
     if args.port:
         path = args.port
 
-    logger.info('Starting serial connection')
+    reader = Reader(path=path)
+    reader.open_reader()
 
-    try:
-        ser = serial.Serial(
-            port=path,
-            baudrate=115200,
-            parity=serial.PARITY_ODD,
-            stopbits=serial.STOPBITS_TWO,
-            bytesize=serial.SEVENBITS
-        )
-    except serial.serialutil.SerialException as err:
-        logger.error("Serial exception, coming out")
-        logger.error(err)
-        sys.exit(-1)
-
+    logger.info("Starting read")
     with open("trace.txt", 'w') as tracer:
         while 1:
             try:
-                data = ser.readline()
+                data = reader.get_data()
                 print(data.decode("utf-8"))
-                logger.info(data.decode("utf-8"))
-
+                tracer.write(data.decode("utf-8"))
             except KeyboardInterrupt:
-                tracer.flush()
-                tracer.close()
-                ser.close()
-                logging.error("Keyboard ")
-                sys.exit()
+                logging.error("Keyboard quit")
+                break
 
             except IndexError:
                 tracer.flush()
@@ -76,3 +70,10 @@ if __name__ == '__main__':
                 logger.error("Serial exception")
                 logger.error(err)
                 pass
+
+    reader.close_reader()
+    logging.info('Closing read')
+
+
+if __name__ == '__main__':
+    test()
